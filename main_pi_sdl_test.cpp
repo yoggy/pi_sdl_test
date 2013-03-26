@@ -13,6 +13,7 @@
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <iostream>
+#include <sys/time.h>
 
 const int WINDOW_WIDTH  = 656;
 const int WINDOW_HEIGHT = 416;
@@ -51,10 +52,30 @@ void process_capture()
 	capture >> capture_img;
 }
 
+inline double get_time()
+{
+	struct timeval tv;
+	gettimeofday(&tv, NULL);
+	double t = tv.tv_sec + 1e-6 * tv.tv_usec;
+	return t;
+}
+
 void process_image()
 {
+	static int count = 0;
+	static double st = get_time();
+
 	// dummy
-	capture_img.copyTo(result_img);
+	cv::resize(capture_img, result_img, result_img.size());
+
+	count ++;
+	if (count == 100) {
+		double t = (get_time() - st) / 100;
+		double fps = 1.0 / t;
+		std::cout << "fps=" << fps << ", t=" << t << std::endl;
+		st = get_time();
+		count = 0;
+	}
 }
 
 bool init_sdl()
@@ -93,7 +114,6 @@ void finish_sdl()
 
 void draw()
 {
-	static int count = 0;
 	SDL_Rect src_rect, dst_rect;
 
 	src_rect.x = 0;
@@ -109,7 +129,6 @@ void draw()
 	SDL_BlitSurface(result_img_surface, &src_rect, screen, &dst_rect);
 
 	SDL_Flip(screen);
-	count ++;
 }
 
 void process_event()
